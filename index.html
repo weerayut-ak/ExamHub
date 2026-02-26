@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExamHub - ระบบทำข้อสอบออนไลน์</title>
+  
+  <!-- โหลด Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- โหลด React และ ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- โหลด Babel สำหรับคอมไพล์ JSX ในเบราว์เซอร์ -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- 🌟 โหลด Google Identity Services (สำหรับระบบ Login ด้วย Google) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    /* ซ่อน scrollbar แต่ยังเลื่อนได้ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+  
+  <div id="root"></div>
+
+  <!-- โค้ด React ทั้งหมดจะอยู่ในแท็ก script type="text/babel" -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // ==========================================
+    // ชุดไอคอน SVG
+    // ==========================================
+    const Icon = ({ path, className = "w-6 h-6", ...props }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+        {path}
+      </svg>
+    );
+
+    const Home = (p) => <Icon path={<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>} {...p} />;
+    const BookOpen = (p) => <Icon path={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} {...p} />;
+    const BarChart2 = (p) => <Icon path={<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>} {...p} />;
+    const User = (p) => <Icon path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} {...p} />;
+    const Settings = (p) => <Icon path={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>} {...p} />;
+    const LogOut = (p) => <Icon path={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>} {...p} />;
+    const PlusCircle = (p) => <Icon path={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>} {...p} />;
+    const Edit3 = (p) => <Icon path={<><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></>} {...p} />;
+    const CheckCircle = (p) => <Icon path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} {...p} />;
+    const AlertCircle = (p) => <Icon path={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>} {...p} />;
+    const Menu = (p) => <Icon path={<><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>} {...p} />;
+    const X = (p) => <Icon path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} {...p} />;
+    const Trash2 = (p) => <Icon path={<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>} {...p} />;
+    const Save = (p) => <Icon path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} {...p} />;
+    const UsersIcon = (p) => <Icon path={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} {...p} />;
+    const SearchIcon = (p) => <Icon path={<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>} {...p} />;
+    const FilterIcon = (p) => <Icon path={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>} {...p} />;
+    const DownloadIcon = (p) => <Icon path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} {...p} />;
+
+    // ==========================================
+    // ส่วนที่ 1: การตั้งค่า API สำหรับ Google Sheets และ Google Login
+    // ==========================================
+    // 1. ระบุ URL Web App ของคุณที่นี่เพื่อเชื่อมต่อฐานข้อมูล Google Sheets
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxj3L-56g3K6YlW1l0X1Pq17oG3x1v9-H4K2e1jY2gV4l1r/exec';
+
+    // 2. 🌟 ระบุ Google Client ID ของคุณที่นี่ (ลงท้ายด้วย .apps.googleusercontent.com)
+    const GOOGLE_CLIENT_ID = ''; 
+
+    // ฟังก์ชันถอดรหัส JWT Token ที่ได้จากการล็อกอิน Google
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        console.error("Failed to parse JWT:", e);
+        return null;
+      }
+    }
+
+    // ==========================================
+    // ส่วนที่ 2: คอมโพเนนต์หลัก (Main App)
+    // ==========================================
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [currentView, setCurrentView] = useState('login');
+      const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+      
+      const [announcements, setAnnouncements] = useState([]);
+      const [exams, setExams] = useState([]);
+      const [results, setResults] = useState([]);
+      const [users, setUsers] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [fetchError, setFetchError] = useState(false);
+
+      useEffect(() => {
+        const fetchData = async () => {
+          setLoading(true);
+          setFetchError(false);
+          
+          if (!API_URL) {
+            setLoading(false);
+            return;
+          }
+
+          try {
+            const res = await fetch(`${API_URL}?action=getAllData`);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
+            setAnnouncements(data.announcements || []);
+            setExams(data.exams || []);
+            setResults(data.results || []);
+            setUsers(data.users || []);
+          } catch (error) {
+            console.warn("Fetch data warning:", error.message);
+            setFetchError(true);
+            
+            // สร้างผู้ใช้งานแอดมินจำลองเพื่อให้สามารถดูหน้าเว็บได้แม้ไม่สามารถเชื่อมต่อฐานข้อมูล
+            setUsers([{ uid: 'admin_1', name: 'แอดมิน', email: 'admin@school.com', role: 'admin' }]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchData();
+      }, []);
+
+      const handleGoogleLogin = (email, googleName) => {
+        const user = users.find(u => u.email === email);
+        if (user) {
+          // หากพบบัญชีในระบบ ให้เข้าสู่ระบบและอัปเดตชื่อในเครื่อง (ถ้ายังไม่มี)
+          setCurrentUser({ ...user, name: user.name !== 'ไม่ทราบชื่อ' ? user.name : googleName });
+          setCurrentView('home');
+        } else {
+          alert(`การเข้าสู่ระบบถูกปฏิเสธ: ไม่พบอีเมล (${email}) ของคุณในระบบ กรุณาติดต่อแอดมินผู้ดูแล`);
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        setCurrentView('login');
+      };
+
+      const apiRequest = async (action, data) => {
+        if (!API_URL || fetchError) return; 
+        try {
+          await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action, data }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+          });
+        } catch (error) {
+          console.warn("API Error during POST:", error.message);
+        }
+      };
+
+      const handleSaveResult = (examId, score, total) => {
+        const newResult = {
+          id: Date.now(),
+          userId: currentUser.uid,
+          examId: examId,
+          examTitle: exams.find(e => e.id === examId).title,
+          score: score,
+          total: total,
+          date: new Date().toISOString().split('T')[0]
+        };
+        setResults([...results, newResult]);
+        apiRequest('saveResult', newResult);
+      };
+
+      const handleUpdateProfile = (updatedData) => {
+        const newUser = { ...currentUser, ...updatedData };
+        setCurrentUser(newUser);
+        setUsers(users.map(u => u.uid === newUser.uid ? newUser : u));
+        apiRequest('saveUser', newUser);
+      };
+
+      const handleSaveExam = (examData) => {
+        const isNew = !examData.id;
+        const finalData = isNew ? { ...examData, id: Date.now() } : examData;
+        setExams(isNew ? [...exams, finalData] : exams.map(e => e.id === finalData.id ? finalData : e));
+        apiRequest('saveExam', finalData);
+      };
+      
+      const handleDeleteExam = (id) => {
+        if(window.confirm('ยืนยันการลบข้อสอบชุดนี้? ข้อมูลจะไม่สามารถกู้คืนได้')) {
+          setExams(exams.filter(e => e.id !== id));
+          apiRequest('deleteExam', { id });
+        }
+      };
+
+      const handleSaveAnnouncement = (annData) => {
+        const isNew = !annData.id;
+        const finalData = isNew ? { ...annData, id: Date.now(), date: new Date().toISOString().split('T')[0] } : annData;
+        setAnnouncements(isNew ? [finalData, ...announcements] : announcements.map(a => a.id === finalData.id ? finalData : a));
+        apiRequest('saveAnnouncement', finalData);
+      };
+
+      const handleDeleteAnnouncement = (id) => {
+        if(window.confirm('ยืนยันการลบประกาศนี้?')) {
+          setAnnouncements(announcements.filter(a => a.id !== id));
+          apiRequest('deleteAnnouncement', { id });
+        }
+      };
+
+      const handleSaveUser = (userData) => {
+        const isNew = !userData.uid;
+        const finalData = isNew ? { ...userData, uid: 'user_' + Date.now(), role: 'student' } : userData;
+        setUsers(isNew ? [...users, finalData] : users.map(u => u.uid === finalData.uid ? finalData : u));
+        apiRequest('saveUser', finalData);
+      };
+
+      const handleDeleteUser = (uid) => {
+        if(window.confirm('ยืนยันการลบนักเรียนคนนี้?')) {
+          setUsers(users.filter(u => u.uid !== uid));
+          apiRequest('deleteUser', { uid });
+        }
+      };
+
+      if (currentView === 'login') {
+        return <LoginScreen onLogin={handleGoogleLogin} loading={loading} fetchError={fetchError} />;
+      }
+
+      const isTakingExam = currentView.startsWith('take_exam_');
+
+      return (
+        <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
+          {!isTakingExam && isSidebarOpen && (
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+          )}
+
+          {!isTakingExam && (
+            <aside className={`fixed lg:static inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-30`}>
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
+                  <BookOpen className="w-6 h-6" /> ExamHub
+                </h1>
+                <button className="lg:hidden text-gray-500 hover:text-gray-700 bg-gray-100 p-1 rounded" onClick={() => setIsSidebarOpen(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                <NavItem icon={<Home />} label="หน้าหลัก" isActive={currentView === 'home'} onClick={() => {setCurrentView('home'); setIsSidebarOpen(false);}} />
+                <NavItem icon={<BookOpen />} label="คลังข้อสอบ" isActive={currentView === 'exams'} onClick={() => {setCurrentView('exams'); setIsSidebarOpen(false);}} />
+                <NavItem icon={<BarChart2 />} label="ผลการสอบ" isActive={currentView === 'dashboard'} onClick={() => {setCurrentView('dashboard'); setIsSidebarOpen(false);}} />
+                <NavItem icon={<User />} label="โปรไฟล์ส่วนตัว" isActive={currentView === 'profile'} onClick={() => {setCurrentView('profile'); setIsSidebarOpen(false);}} />
+                
+                {currentUser?.role === 'admin' && (
+                  <>
+                    <div className="pt-4 pb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">สำหรับแอดมิน</div>
+                    <NavItem icon={<Settings />} label="จัดการระบบ" isActive={currentView === 'admin'} onClick={() => {setCurrentView('admin'); setIsSidebarOpen(false);}} />
+                  </>
+                )}
+              </nav>
+
+              <div className="p-4 border-t border-gray-100">
+                <div className="flex items-center gap-3 mb-4 px-2">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shrink-0">
+                    {currentUser?.name?.charAt(0)}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-medium text-gray-900 truncate">{currentUser?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{currentUser?.role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักเรียน'}</p>
+                  </div>
+                </div>
+                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <LogOut className="w-4 h-4" /> ออกจากระบบ
+                </button>
+              </div>
+            </aside>
+          )}
+
+          <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+            {!isTakingExam && (
+              <header className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm z-10">
+                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Menu className="w-6 h-6" />
+                </button>
+                <h1 className="text-xl font-bold text-blue-600">ExamHub</h1>
+              </header>
+            )}
+
+            <main className="flex-1 overflow-y-auto bg-gray-50">
+              <div className="p-4 md:p-8 max-w-5xl mx-auto">
+                {currentView === 'home' && <HomeScreen announcements={announcements} />}
+                {currentView === 'exams' && <ExamBank exams={exams} currentUser={currentUser} onTakeExam={(exam) => setCurrentView(`take_exam_${exam.id}`)} />}
+                {currentView.startsWith('take_exam_') && (
+                  <QuizTaker 
+                    exam={exams.find(e => e.id === parseInt(currentView.replace('take_exam_', '')))} 
+                    onFinish={(score, total) => {
+                      handleSaveResult(parseInt(currentView.replace('take_exam_', '')), score, total);
+                      setCurrentView('dashboard');
+                    }}
+                    onCancel={() => {
+                      if(window.confirm('คุณแน่ใจหรือไม่ว่าต้องการออกจากข้อสอบ? ข้อมูลที่ทำไว้จะไม่ถูกบันทึก')) {
+                        setCurrentView('exams');
+                      }
+                    }}
+                  />
+                )}
+                {currentView === 'dashboard' && <Dashboard results={results.filter(r => r.userId === currentUser.uid)} />}
+                {currentView === 'profile' && <ProfileScreen user={currentUser} onSave={handleUpdateProfile} />}
+                {currentView === 'admin' && (
+                  <AdminPanel 
+                    exams={exams} announcements={announcements} results={results} users={users}
+                    onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam}
+                    onSaveAnnouncement={handleSaveAnnouncement} onDeleteAnnouncement={handleDeleteAnnouncement}
+                    onSaveUser={handleSaveUser} onDeleteUser={handleDeleteUser}
+                  />
+                )}
+              </div>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // คอมโพเนนต์ย่อยต่างๆ
+    // ==========================================
+    function LoginScreen({ onLogin, loading, fetchError }) {
+      
+      // การทำงานของปุ่ม Google Login
+      useEffect(() => {
+        if (loading || fetchError || !GOOGLE_CLIENT_ID) return;
+
+        const handleCredentialResponse = (response) => {
+          const payload = parseJwt(response.credential);
+          if (payload && payload.email) {
+            onLogin(payload.email, payload.name);
+          }
+        };
+
+        const initGoogleSignIn = () => {
+          if (window.google && window.google.accounts) {
+            window.google.accounts.id.initialize({
+              client_id: GOOGLE_CLIENT_ID,
+              callback: handleCredentialResponse
+            });
+            window.google.accounts.id.renderButton(
+              document.getElementById("google-signin-button"),
+              { theme: "outline", size: "large", width: "100%", shape: "rectangular" }
+            );
+          } else {
+            // ถ้าระบบโหลดสคริปต์ของกูเกิลยังไม่เสร็จ ให้ลองเรียกใหม่ใน 100ms
+            setTimeout(initGoogleSignIn, 100);
+          }
+        };
+
+        initGoogleSignIn();
+      }, [loading, fetchError]);
+      
+      if(loading) {
+        return (
+          <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-500">กำลังเชื่อมต่อฐานข้อมูล...</p>
+          </div>
+        )
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+          <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="flex justify-center text-blue-600"><BookOpen className="w-16 h-16" /></div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">เข้าสู่ระบบ ExamHub</h2>
+            <p className="mt-2 text-center text-sm text-gray-600">โปรดเข้าสู่ระบบด้วยบัญชี Google ของคุณ</p>
+          </div>
+          <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="bg-white py-10 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100 flex flex-col items-center">
+              
+              {fetchError && (
+                <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200 flex items-start gap-2 w-full">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>
+                    ไม่สามารถดึงรายชื่อผู้ใช้จากฐานข้อมูลได้ กรุณาตรวจสอบการตั้งค่า API_URL
+                  </span>
+                </div>
+              )}
+
+              {!GOOGLE_CLIENT_ID ? (
+                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm border border-yellow-200 text-center w-full">
+                  <AlertCircle className="w-6 h-6 mx-auto mb-2 text-yellow-600" />
+                  <b>ยังไม่ได้ระบุ Google Client ID</b><br />
+                  โปรดนำ Client ID ที่ได้จาก Google Cloud Console มาใส่ในตัวแปร <code>GOOGLE_CLIENT_ID</code> เพื่อเปิดใช้งานปุ่มล็อกอิน
+                </div>
+              ) : (
+                <div id="google-signin-button" className="w-full flex justify-center"></div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function HomeScreen({ announcements }) {
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">ประกาศจากผู้ดูแลระบบ</h2>
+          <div className="grid gap-4">
+            {announcements.map(ann => (
+              <div key={ann.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-blue-500" />
+                  <h3 className="text-lg font-semibold">{ann.title}</h3>
+                </div>
+                <p className="text-gray-600 mt-2">{ann.content}</p>
+                <p className="text-sm text-gray-400 mt-4">ประกาศเมื่อ: {ann.date}</p>
+              </div>
+            ))}
+            {announcements.length === 0 && <p className="text-gray-500">ยังไม่มีประกาศใหม่ในขณะนี้</p>}
+          </div>
+        </div>
+      );
+    }
+
+    function ExamBank({ exams, currentUser, onTakeExam }) {
+      const now = new Date();
+      const visibleExams = exams.filter(exam => 
+        !exam.assignedUsers || exam.assignedUsers.length === 0 || 
+        exam.assignedUsers.includes(currentUser.uid) || currentUser.role === 'admin'
+      );
+
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">คลังข้อสอบทั้งหมด</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleExams.map(exam => {
+              const examStart = exam.startTime ? new Date(exam.startTime) : null;
+              const isTimeValid = !examStart || examStart <= now;
+              const isAvailable = exam.isOpen && isTimeValid;
+
+              return (
+                <div key={exam.id} className="bg-white flex flex-col rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow relative">
+                  <div className={`h-2 ${isAvailable ? 'bg-blue-500' : 'bg-gray-400'}`}></div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold text-gray-800">{exam.title}</h3>
+                      {!exam.isOpen ? (
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium shrink-0">ปิดรับคำตอบ</span>
+                      ) : !isTimeValid ? (
+                        <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium shrink-0">รอเวลาเปิด</span>
+                      ) : null}
+                    </div>
+                    <p className="text-gray-600 mb-4 flex-1">{exam.description}</p>
+                    <div className="flex justify-between items-center text-sm text-gray-500 mb-6">
+                      <span>จำนวน {exam.questions.length} ข้อ</span>
+                      <span>เวลา {exam.duration} นาที</span>
+                    </div>
+                    {!isAvailable && examStart && exam.isOpen && (
+                      <div className="text-xs text-orange-600 mb-3 text-center bg-orange-50 py-1.5 rounded-lg font-medium">
+                        เปิดให้ทำ: {examStart.toLocaleString('th-TH')}
+                      </div>
+                    )}
+                    <button onClick={() => isAvailable && onTakeExam(exam)} disabled={!isAvailable} className={`w-full py-2 font-medium rounded-lg transition-colors ${isAvailable ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                      {isAvailable ? 'เริ่มทำข้อสอบ' : 'ยังไม่สามารถทำได้'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function QuizTaker({ exam, onFinish, onCancel }) {
+      const [currentQuestion, setCurrentQuestion] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [isFinished, setIsFinished] = useState(false);
+
+      const handleSubmit = () => {
+        let score = 0;
+        exam.questions.forEach((q, index) => { if (answers[index] === q.answer) score++; });
+        setIsFinished(true);
+        setTimeout(() => { onFinish(score, exam.questions.length); }, 2000);
+      };
+
+      if (isFinished) return (
+        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center max-w-lg mx-auto mt-10">
+          <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">ส่งคำตอบเรียบร้อย!</h2>
+          <p className="text-gray-600 mb-6">ระบบกำลังบันทึกคะแนนของคุณ...</p>
+        </div>
+      );
+
+      const q = exam.questions[currentQuestion];
+      return (
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold">{exam.title}</h2>
+            <div className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">ข้อที่ {currentQuestion + 1} / {exam.questions.length}</div>
+          </div>
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">{currentQuestion + 1}. {q.q}</h3>
+            <div className="space-y-3">
+              {q.options.map((opt, index) => (
+                <div key={index} onClick={() => setAnswers({ ...answers, [currentQuestion]: index })} className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${answers[currentQuestion] === index ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'}`}>
+                  {opt}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <button onClick={onCancel} className="px-6 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">ยกเลิก</button>
+            <div className="space-x-3">
+              <button onClick={() => setCurrentQuestion(c => Math.max(0, c - 1))} disabled={currentQuestion === 0} className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg disabled:opacity-50">ก่อนหน้า</button>
+              {currentQuestion === exam.questions.length - 1 ? 
+                <button onClick={handleSubmit} className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">ส่งคำตอบ</button> : 
+                <button onClick={() => setCurrentQuestion(c => Math.min(exam.questions.length - 1, c + 1))} className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">ถัดไป</button>
+              }
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Dashboard({ results }) {
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">แดชบอร์ดสรุปผลการสอบ</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+              <div className="text-gray-500 text-sm mb-1">จำนวนครั้งที่สอบ</div>
+              <div className="text-3xl font-bold text-blue-600">{results.length}</div>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+              <div className="text-gray-500 text-sm mb-1">คะแนนเฉลี่ย</div>
+              <div className="text-3xl font-bold text-green-600">
+                {results.length > 0 ? Math.round((results.reduce((acc, curr) => acc + (curr.score / curr.total * 100), 0) / results.length)) : 0}%
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-100 font-semibold text-gray-700">ประวัติการสอบของคุณ</div>
+            {results.length === 0 ? <div className="p-8 text-center text-gray-500">คุณยังไม่เคยทำข้อสอบ</div> : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-white">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วิชาที่สอบ</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">คะแนนที่ได้</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {results.map((res, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{res.date ? res.date.split('T')[0] : ''}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{res.examTitle}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${(res.score / res.total) >= 0.5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {res.score} / {res.total}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ProfileScreen({ user, onSave }) {
+      const [formData, setFormData] = useState({ name: user.name, school: user.school || '' });
+      return (
+        <div className="max-w-2xl bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900 border-b pb-4">แก้ไขข้อมูลส่วนตัว</h2>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">อีเมล (ไม่สามารถเปลี่ยนได้)</label><input type="text" disabled value={user.email} className="w-full p-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label><input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">โรงเรียน / สังกัด</label><input type="text" value={formData.school} onChange={(e) => setFormData({...formData, school: e.target.value})} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+          <button onClick={() => onSave(formData)} className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> บันทึกข้อมูล</button>
+        </div>
+      );
+    }
+
+    function AdminPanel({ exams, announcements, results, users, onSaveExam, onDeleteExam, onSaveAnnouncement, onDeleteAnnouncement, onSaveUser, onDeleteUser }) {
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [examModalOpen, setExamModalOpen] = useState(false);
+      const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+      const [userModalOpen, setUserModalOpen] = useState(false);
+      const [editingData, setEditingData] = useState(null);
+
+      const openModal = (type, data = null) => {
+        setEditingData(data);
+        if(type === 'exam') setExamModalOpen(true);
+        if(type === 'ann') setAnnouncementModalOpen(true);
+        if(type === 'user') setUserModalOpen(true);
+      };
+
+      return (
+        <div className="space-y-6 relative">
+          <div><h2 className="text-2xl font-bold text-gray-900 mb-2">แผงควบคุมสำหรับผู้ดูแลระบบ</h2></div>
+          <div className="flex border-b border-gray-200 gap-6 overflow-x-auto">
+            <button onClick={() => setActiveTab('users')} className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'users' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>จัดการนักเรียน</button>
+            <button onClick={() => setActiveTab('exams')} className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'exams' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>จัดการข้อสอบ</button>
+            <button onClick={() => setActiveTab('announcements')} className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'announcements' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>จัดการประกาศ</button>
+            <button onClick={() => setActiveTab('dashboard')} className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'dashboard' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>สรุปผลการสอบทั้งหมด</button>
+          </div>
+
+          {activeTab === 'exams' && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h3 className="text-lg font-bold flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500"/> รายการข้อสอบทั้งหมด</h3>
+                <button onClick={() => openModal('exam')} className="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium"><PlusCircle className="w-4 h-4" /> สร้างข้อสอบ</button>
+              </div>
+              <div className="space-y-3">
+                {exams.map(e => (
+                  <div key={e.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-800 flex items-center gap-2">{e.title} {e.isOpen ? <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span> : <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>}</div>
+                      <div className="text-xs text-gray-500 mt-1 flex gap-4"><span>{e.questions.length} ข้อ</span><span>{e.duration} นาที</span></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => openModal('exam', e)} className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={() => onDeleteExam(e.id)} className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'announcements' && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h3 className="text-lg font-bold flex items-center gap-2"><AlertCircle className="w-5 h-5 text-orange-500"/> จัดการประกาศ</h3>
+                <button onClick={() => openModal('ann')} className="text-sm bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-100 flex items-center gap-1 font-medium"><PlusCircle className="w-4 h-4" /> เพิ่มประกาศ</button>
+              </div>
+              <div className="space-y-3">
+                {announcements.map(a => (
+                  <div key={a.id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 flex justify-between">
+                    <div><div className="font-semibold text-gray-800">{a.title}</div><div className="text-sm text-gray-600 mt-1">{a.content}</div></div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openModal('ann', a)} className="p-1.5 text-blue-600"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={() => onDeleteAnnouncement(a.id)} className="p-1.5 text-red-600"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'dashboard' && <AdminResultsDashboard results={results} users={users} exams={exams} />}
+
+          {activeTab === 'users' && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h3 className="text-lg font-bold flex items-center gap-2"><UsersIcon className="w-5 h-5 text-purple-500"/> ข้อมูลนักเรียน</h3>
+                <button onClick={() => openModal('user')} className="text-sm bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg hover:bg-purple-100 flex items-center gap-1 font-medium"><PlusCircle className="w-4 h-4" /> เพิ่มนักเรียน</button>
+              </div>
+              <div className="space-y-3">
+                {users.filter(u => u.role === 'student').map(u => (
+                  <div key={u.uid} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-800">{u.name}</div>
+                      <div className="text-xs text-gray-500 mt-1 flex gap-3"><span>รหัส: {u.studentId || '-'}</span><span>อีเมล: {u.email}</span></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => openModal('user', u)} className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={() => onDeleteUser(u.uid)} className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {examModalOpen && <ExamFormModal initialData={editingData} users={users} onClose={() => setExamModalOpen(false)} onSave={(d) => { onSaveExam(d); setExamModalOpen(false); }} />}
+          {announcementModalOpen && <AnnouncementFormModal initialData={editingData} onClose={() => setAnnouncementModalOpen(false)} onSave={(d) => { onSaveAnnouncement(d); setAnnouncementModalOpen(false); }} />}
+          {userModalOpen && <UserFormModal initialData={editingData} onClose={() => setUserModalOpen(false)} onSave={(d) => { onSaveUser(d); setUserModalOpen(false); }} />}
+        </div>
+      );
+    }
+
+    // 🌟 ส่วนคอมโพเนนต์แดชบอร์ดที่เพิ่มตัวกรองแล้ว
+    function AdminResultsDashboard({ results, users, exams }) {
+      const [searchName, setSearchName] = useState('');
+      const [filterExam, setFilterExam] = useState('');
+
+      // ประมวลผลการกรอง
+      const filteredResults = useMemo(() => {
+        return results.filter(res => {
+          const uName = users.find(u => u.uid === res.userId)?.name || 'ไม่ทราบชื่อ';
+          const matchName = uName.toLowerCase().includes(searchName.toLowerCase());
+          const matchExam = filterExam ? res.examId.toString() === filterExam.toString() : true;
+          return matchName && matchExam;
+        });
+      }, [results, users, searchName, filterExam]);
+
+      const avgScore = filteredResults.length > 0 ? Math.round((filteredResults.reduce((acc, curr) => acc + (curr.score / curr.total * 100), 0) / filteredResults.length)) : 0;
+
+      // ฟังก์ชันนำออกข้อมูลเป็นไฟล์ CSV (รองรับ Excel และภาษาไทย)
+      const exportToExcel = () => {
+        if (filteredResults.length === 0) {
+          alert('ไม่มีข้อมูลสำหรับนำออก');
+          return;
+        }
+
+        // 1. กำหนดหัวตาราง
+        const headers = ['วันที่', 'รหัสนักเรียน', 'ชื่อ-นามสกุล', 'อีเมล', 'วิชาที่สอบ', 'คะแนนที่ได้', 'คะแนนเต็ม'];
+        
+        // 2. ดึงข้อมูลจากผลลัพธ์ที่ผ่านการกรองแล้ว
+        const rows = filteredResults.map(res => {
+          const user = users.find(u => u.uid === res.userId) || {};
+          const date = res.date ? res.date.split('T')[0] : '';
+          
+          return [
+            date,
+            user.studentId || '-',
+            user.name || 'ไม่ทราบชื่อ',
+            user.email || '-',
+            res.examTitle,
+            res.score,
+            res.total
+          ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','); // ครอบข้อความด้วย " เพื่อป้องกันปัญหาเรื่องเครื่องหมายลูกน้ำในข้อความ
+        });
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        
+        // 3. ใส่รหัส BOM (\uFEFF) นำหน้า เพื่อบังคับให้โปรแกรม Excel เปิดอ่านภาษาไทยแบบ UTF-8 ได้อย่างถูกต้อง
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        // 4. จำลองการคลิกลิงก์เพื่อเริ่มดาวน์โหลด
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Exam_Results_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0"><BookOpen className="w-6 h-6" /></div>
+              <div><div className="text-gray-500 text-sm">จำนวนการทำข้อสอบ (ที่กรอง)</div><div className="text-2xl font-bold text-gray-900">{filteredResults.length} ครั้ง</div></div>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0"><BarChart2 className="w-6 h-6" /></div>
+              <div><div className="text-gray-500 text-sm">คะแนนเฉลี่ย (ที่กรอง)</div><div className="text-2xl font-bold text-gray-900">{avgScore}%</div></div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2"><FilterIcon className="w-5 h-5 text-gray-500"/> ตัวกรองข้อมูล</h3>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <label className="block text-sm text-gray-600 mb-1">ค้นหาชื่อผู้สอบ</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SearchIcon className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input type="text" value={searchName} onChange={e => setSearchName(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." className="w-full pl-9 p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">กรองตามรายวิชา</label>
+                <select value={filterExam} onChange={e => setFilterExam(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="">-- แสดงทุกวิชา --</option>
+                  {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.title}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-100 font-semibold text-gray-700 flex justify-between items-center">
+              <div>
+                <span>ประวัติการสอบที่ค้นพบ</span>
+                <span className="text-gray-500 font-normal ml-2">{filteredResults.length} รายการ</span>
+              </div>
+              <button 
+                onClick={exportToExcel} 
+                className="text-sm bg-green-50 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100 flex items-center gap-1 font-medium transition-colors"
+              >
+                <DownloadIcon className="w-4 h-4" /> นำออก Excel
+              </button>
+            </div>
+            
+            {filteredResults.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">
+                <SearchIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredResults.map((res, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-4 hover:bg-gray-50 transition-colors gap-2">
+                    <div className="flex flex-col sm:flex-row sm:gap-6 text-sm text-gray-700">
+                      <span className="text-gray-500 sm:w-28 shrink-0">{res.date ? res.date.split('T')[0] : ''}</span>
+                      <span className="font-semibold text-gray-900 sm:w-48 shrink-0">{users.find(u=>u.uid===res.userId)?.name || 'ไม่ทราบชื่อ'}</span>
+                      <span className="text-gray-600 truncate">{res.examTitle}</span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                       <span className={`px-3 py-1 text-sm font-bold rounded-full ${
+                        (res.score / res.total) >= 0.5 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                       }`}>
+                         {res.score}/{res.total}
+                       </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ExamFormModal({ initialData, users, onClose, onSave }) {
+      const [formData, setFormData] = useState(initialData || { title: '', description: '', duration: 30, isOpen: true, startTime: '', questions: [], assignedUsers: [] });
+      const studentList = users ? users.filter(u => u.role === 'student') : [];
+      return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden p-6 overflow-y-auto">
+             <h2 className="text-xl font-bold mb-4">{initialData ? 'แก้ไขข้อสอบ' : 'สร้างข้อสอบใหม่'}</h2>
+             <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-2 border rounded-lg mb-2" placeholder="ชื่อวิชา" />
+             <input type="number" value={formData.duration} onChange={e => setFormData({...formData, duration: parseInt(e.target.value)})} className="w-full p-2 border rounded-lg mb-4" placeholder="เวลาทำ (นาที)" />
+             
+             <div className="mb-4">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isOpen} onChange={e => setFormData({...formData, isOpen: e.target.checked})} /> เปิดให้ทำข้อสอบ</label>
+             </div>
+
+             <div className="mb-4 border p-2 rounded max-h-32 overflow-y-auto">
+                <p className="text-sm font-bold mb-2">มอบหมายให้นักเรียน (ไม่เลือก = ทำได้ทุกคน)</p>
+                {studentList.map(s => (
+                  <label key={s.uid} className="block text-sm">
+                    <input type="checkbox" className="mr-2" checked={(formData.assignedUsers||[]).includes(s.uid)} onChange={() => {
+                        const arr = formData.assignedUsers || [];
+                        setFormData({...formData, assignedUsers: arr.includes(s.uid) ? arr.filter(id=>id!==s.uid) : [...arr, s.uid]})
+                    }} /> {s.name}
+                  </label>
+                ))}
+             </div>
+
+             <div className="flex justify-between items-center mt-4">
+               <h3 className="font-bold">คำถาม ({formData.questions.length})</h3>
+               <button onClick={() => setFormData({...formData, questions: [...formData.questions, { q: '', options: ['', '', '', ''], answer: 0 }]})} className="text-blue-600">+ เพิ่มคำถาม</button>
+             </div>
+
+             {formData.questions.map((q, qIndex) => (
+                <div key={qIndex} className="p-4 border rounded-lg mt-2 bg-gray-50 relative">
+                   <button onClick={() => { const nQ = [...formData.questions]; nQ.splice(qIndex, 1); setFormData({...formData, questions: nQ}) }} className="absolute top-2 right-2 text-red-500">ลบ</button>
+                   <input type="text" value={q.q} onChange={e => { const nQ=[...formData.questions]; nQ[qIndex].q=e.target.value; setFormData({...formData, questions: nQ}) }} className="w-full p-2 border rounded mb-2" placeholder="คำถาม" />
+                   {q.options.map((opt, oIndex) => (
+                      <div key={oIndex} className="flex items-center gap-2 mb-1">
+                         <input type="radio" checked={q.answer === oIndex} onChange={() => { const nQ=[...formData.questions]; nQ[qIndex].answer=oIndex; setFormData({...formData, questions: nQ}) }} />
+                         <input type="text" value={opt} onChange={e => { const nQ=[...formData.questions]; nQ[qIndex].options[oIndex]=e.target.value; setFormData({...formData, questions: nQ}) }} className="flex-1 p-1 border rounded" placeholder={`ตัวเลือก ${oIndex+1}`} />
+                      </div>
+                   ))}
+                </div>
+             ))}
+
+             <div className="flex justify-end gap-2 mt-6 border-t pt-4">
+               <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
+               <button onClick={() => onSave(formData)} className="px-4 py-2 bg-blue-600 text-white rounded-lg">บันทึก</button>
+             </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AnnouncementFormModal({ initialData, onClose, onSave }) {
+      const [formData, setFormData] = useState(initialData || { title: '', content: '' });
+      return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+             <h2 className="text-xl font-bold mb-4">{initialData ? 'แก้ไขประกาศ' : 'เพิ่มประกาศใหม่'}</h2>
+             <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-2 border rounded-lg mb-4" placeholder="หัวข้อประกาศ" />
+             <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full p-2 border rounded-lg mb-4" rows="4" placeholder="เนื้อหา"></textarea>
+             <div className="flex justify-end gap-2">
+               <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
+               <button onClick={() => onSave(formData)} className="px-4 py-2 bg-orange-500 text-white rounded-lg">บันทึก</button>
+             </div>
+          </div>
+        </div>
+      );
+    }
+
+    function UserFormModal({ initialData, onClose, onSave }) {
+      const [formData, setFormData] = useState(initialData || { name: '', email: '', studentId: '', school: '' });
+      return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+             <h2 className="text-xl font-bold mb-4">{initialData ? 'แก้ไขข้อมูลนักเรียน' : 'เพิ่มนักเรียนใหม่'}</h2>
+             <input type="text" value={formData.studentId} onChange={e => setFormData({...formData, studentId: e.target.value})} className="w-full p-2 border rounded-lg mb-2" placeholder="รหัสนักเรียน" />
+             <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded-lg mb-2" placeholder="ชื่อ-นามสกุล" />
+             <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 border rounded-lg mb-2" placeholder="อีเมล Google" />
+             <input type="text" value={formData.school} onChange={e => setFormData({...formData, school: e.target.value})} className="w-full p-2 border rounded-lg mb-4" placeholder="โรงเรียน" />
+             <div className="flex justify-end gap-2">
+               <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
+               <button onClick={() => onSave(formData)} className="px-4 py-2 bg-purple-600 text-white rounded-lg">บันทึก</button>
+             </div>
+          </div>
+        </div>
+      );
+    }
+
+    function NavItem({ icon, label, isActive, onClick }) {
+      return (
+        <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{icon}</span> {label}
+        </button>
+      );
+    }
+
+    // ==========================================
+    // Render
+    // ==========================================
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
